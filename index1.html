@@ -1,0 +1,1601 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Nasabah KSP Setya Karya</title>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Tambahkan Firebase untuk sinkronisasi data -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+            padding: 10px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 15px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+        
+        .tabs {
+            display: flex;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #ddd;
+            gap: 5px;
+        }
+        
+        .tab {
+            padding: 10px 15px;
+            cursor: pointer;
+            background: #f1f1f1;
+            border-radius: 5px 5px 0 0;
+            transition: all 0.3s ease;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+            flex-grow: 1;
+            text-align: center;
+        }
+        
+        .tab.active {
+            background: #2a5298;
+            color: white;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .controls {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 20px;
+            gap: 10px;
+        }
+        
+        .search-box {
+            padding: 12px 15px;
+            width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 50px;
+            font-size: 1rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .search-box:focus {
+            outline: none;
+            border-color: #2a5298;
+            box-shadow: 0 2px 12px rgba(42, 82, 152, 0.3);
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #2a5298, #1e3c72);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            box-shadow: 0 4px 12px rgba(42, 82, 152, 0.4);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #28a745, #218838);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: linear-gradient(135deg, #218838, #28a745);
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #dc3545, #c82333);
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: linear-gradient(135deg, #c82333, #dc3545);
+            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, #ffc107, #e0a800);
+            color: white;
+        }
+        
+        .btn-warning:hover {
+            background: linear-gradient(135deg, #e0a800, #ffc107);
+            box-shadow: 0 4px 12px rgba(255, 193, 7, 0.4);
+        }
+        
+        .card-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.12);
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, #2a5298, #1e3c72);
+            color: white;
+            padding: 12px 15px;
+            text-align: center;
+        }
+        
+        .card-body {
+            padding: 15px;
+        }
+        
+        .customer-id {
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 5px;
+            font-size: 1rem;
+        }
+        
+        .customer-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #2c3e50;
+        }
+        
+        .customer-detail {
+            margin-bottom: 6px;
+            font-size: 0.9rem;
+        }
+        
+        .detail-label {
+            font-weight: 600;
+            color: #7f8c8d;
+        }
+        
+        .qr-code {
+            text-align: center;
+            margin: 15px 0;
+            padding: 8px;
+            background: #f9f9f9;
+            border-radius: 8px;
+        }
+        
+        .actions {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        
+        /* Form Styles */
+        .form-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+            margin-bottom: 25px;
+        }
+        
+        .form-title {
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            color: #2c3e50;
+            text-align: center;
+        }
+        
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 15px;
+        }
+        
+        .form-group {
+            margin-bottom: 12px;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 0.95rem;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #2a5298;
+            box-shadow: 0 2px 8px rgba(42, 82, 152, 0.3);
+        }
+        
+        .form-actions {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        /* Table view */
+        .table-container {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+            margin-bottom: 25px;
+            overflow-x: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 600px;
+        }
+        
+        th, td {
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+            font-size: 0.9rem;
+        }
+        
+        th {
+            background-color: #2a5298;
+            color: white;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+        
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        
+        .action-cell {
+            display: flex;
+            gap: 5px;
+        }
+        
+        /* Login form */
+        .login-container {
+            max-width: 400px;
+            margin: 30px auto;
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+        }
+        
+        .login-title {
+            text-align: center;
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+        
+        /* Settings form */
+        .settings-container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+        }
+        
+        /* Import section */
+        .import-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+            margin-bottom: 25px;
+        }
+        
+        .drop-zone {
+            border: 2px dashed #2a5298;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .drop-zone:hover {
+            background-color: #f0f8ff;
+        }
+        
+        .drop-zone p {
+            margin-bottom: 12px;
+            color: #7f8c8d;
+        }
+        
+        /* Password protection modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background-color: white;
+            padding: 25px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 400px;
+        }
+        
+        .modal-title {
+            text-align: center;
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+        
+        .no-results {
+            text-align: center;
+            padding: 30px;
+            font-size: 1.1rem;
+            color: #7f8c8d;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            padding: 15px;
+            color: #7f8c8d;
+            font-size: 0.85rem;
+        }
+        
+        /* Preview image style */
+        .preview-image {
+            max-width: 100%;
+            max-height: 150px;
+            border-radius: 8px;
+            margin-top: 8px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Mobile-specific styles */
+        @media (max-width: 480px) {
+            .container {
+                padding: 10px;
+            }
+            
+            header {
+                padding: 12px;
+            }
+            
+            h1 {
+                font-size: 1.5rem;
+            }
+            
+            .tab {
+                padding: 8px 10px;
+                font-size: 0.8rem;
+            }
+            
+            .card-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .btn {
+                padding: 8px 12px;
+                font-size: 0.85rem;
+            }
+            
+            .actions {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .actions .btn {
+                width: 100%;
+                max-width: 200px;
+            }
+            
+            .form-actions {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .form-actions .btn {
+                width: 100%;
+                max-width: 250px;
+            }
+        }
+
+        /* Status indicator */
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        
+        .status-online {
+            background-color: #28a745;
+        }
+        
+        .status-offline {
+            background-color: #dc3545;
+        }
+        
+        .connection-status {
+            text-align: center;
+            padding: 8px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            font-size: 0.9rem;
+        }
+        
+        .connection-online {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .connection-offline {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>DATABASE NASABAH KSP SETYA KARYA</h1>
+            <p class="subtitle">Sistem Manajemen Data Nasabah dengan QR Code</p>
+        </header>
+        
+        <div id="loginSection">
+            <div class="login-container">
+                <h2 class="login-title">Login Admin</h2>
+                <div class="form-group">
+                    <label class="form-label">Username</label>
+                    <input type="text" class="form-input" id="username" placeholder="Masukkan username">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Password</label>
+                    <input type="password" class="form-input" id="password" placeholder="Masukkan password">
+                </div>
+                <div class="form-actions">
+                    <button class="btn btn-primary" onclick="login()">Login</button>
+                </div>
+                <p style="text-align: center; margin-top: 20px; color: #7f8c8d;">
+                    Gunakan username: <strong>admin</strong> dan password: <strong>admin123</strong> untuk login
+                </p>
+            </div>
+        </div>
+        
+        <div id="mainSection" style="display: none;">
+            <div id="connectionStatus" class="connection-status connection-offline">
+                Mode offline - Data disimpan secara lokal
+            </div>
+            
+            <div class="tabs">
+                <div class="tab active" onclick="showTab('view')">Lihat Data</div>
+                <div class="tab" onclick="showTab('add')">Tambah Nasabah</div>
+                <div class="tab" onclick="showTab('import')">Import Data</div>
+                <div class="tab" onclick="showTab('table')">Tampilan Tabel</div>
+                <div class="tab" onclick="showTab('settings')">Pengaturan</div>
+                <div class="tab" onclick="logout()">Logout</div>
+            </div>
+            
+            <div id="viewTab" class="tab-content active">
+                <div class="controls">
+                    <input type="text" id="searchInput" class="search-box" placeholder="Cari nasabah berdasarkan nama, NIK, atau alamat...">
+                    <div class="action-buttons">
+                        <button class="btn btn-success" onclick="exportToCSV()">
+                            📥 Export CSV
+                        </button>
+                        <button class="btn btn-primary" onclick="saveData()">
+                            💾 Simpan Data
+                        </button>
+                        <button class="btn btn-warning" onclick="syncData()">
+                            🔄 Sinkronisasi
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="card-container" id="customerCards">
+                    <!-- Kartu nasabah akan di-generate oleh JavaScript -->
+                </div>
+            </div>
+            
+            <div id="addTab" class="tab-content">
+                <div class="form-section">
+                    <h2 class="form-title">Tambah Data Nasabah Baru</h2>
+                    <form id="customerForm" enctype="multipart/form-data">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label">No</label>
+                                <input type="number" class="form-input" id="no" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Customer ID</label>
+                                <input type="text" class="form-input" id="customerId" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Tanggal Drop</label>
+                                <input type="date" class="form-input" id="tglDrop" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">NIK</label>
+                                <input type="text" class="form-input" id="nik" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Nama</label>
+                                <input type="text" class="form-input" id="nama" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Alamat</label>
+                                <textarea class="form-input" id="alamat" rows="2" required></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Dokumen</label>
+                                <textarea class="form-input" id="dokumen" rows="2" required></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Pinjaman (Rp)</label>
+                                <input type="text" class="form-input" id="pinjamankin" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Pinjamanki</label>
+                                <input type="text" class="form-input" id="pinjamanki" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Foto Nasabah</label>
+                                <input type="file" class="form-input" id="fotoNasabah" accept="image/*" capture="user">
+                                <small style="color: #7f8c8d;">Ambil foto dengan kamera</small>
+                                <div id="previewFotoNasabah" style="margin-top: 10px;"></div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Foto Rumah Nasabah</label>
+                                <input type="file" class="form-input" id="fotoRumah" accept="image/*" capture="environment">
+                                <small style="color: #7f8c8d;">Ambil foto dengan kamera</small>
+                                <div id="previewFotoRumah" style="margin-top: 10px;"></div>
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-success">Simpan Data Nasabah</button>
+                            <button type="reset" class="btn btn-danger">Reset Form</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <div id="importTab" class="tab-content">
+                <div class="import-section">
+                    <h2 class="form-title">Import Data dari Excel/CSV</h2>
+                    <div class="drop-zone" id="dropZone">
+                        <p>Seret file Excel atau CSV ke sini atau klik untuk memilih file</p>
+                        <button class="btn btn-primary">Pilih File</button>
+                        <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display: none;">
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn btn-success" onclick="document.getElementById('fileInput').click()">
+                            Pilih File dari Komputer
+                        </button>
+                    </div>
+                    <div id="importPreview" style="margin-top: 30px;"></div>
+                </div>
+            </div>
+            
+            <div id="tableTab" class="tab-content">
+                <div class="controls">
+                    <input type="text" id="tableSearchInput" class="search-box" placeholder="Cari nasabah...">
+                    <div class="action-buttons">
+                        <button class="btn btn-success" onclick="exportToCSV()">
+                            📥 Export CSV
+                        </button>
+                        <button class="btn btn-primary" onclick="saveData()">
+                            💾 Simpan Data
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="table-container">
+                    <table id="customersTable">
+                        <thead>
+                            <tr>
+                                <th>No</th>
+                                <th>Customer ID</th>
+                                <th>Nama</th>
+                                <th>NIK</th>
+                                <th>Alamat</th>
+                                <th>Pinjaman</th>
+                                <th>Foto Nasabah</th>
+                                <th>Foto Rumah</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Data akan diisi oleh JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div id="settingsTab" class="tab-content">
+                <div class="settings-container">
+                    <h2 class="form-title">Pengaturan Sistem</h2>
+                    <div class="form-group">
+                        <label class="form-label">Username Admin</label>
+                        <input type="text" class="form-input" id="adminUsername" value="admin">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Password Admin Baru</label>
+                        <input type="password" class="form-input" id="adminNewPassword" placeholder="Masukkan password baru">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Konfirmasi Password Baru</label>
+                        <input type="password" class="form-input" id="adminConfirmPassword" placeholder="Konfirmasi password baru">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Password QR Code (Untuk Semua Nasabah)</label>
+                        <input type="password" class="form-input" id="globalQrPassword" placeholder="Password untuk membuka QR code">
+                        <small style="color: #7f8c8d;">Password ini digunakan untuk semua QR code. Hanya Anda yang bisa mengubahnya.</small>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Konfirmasi Password QR Code</label>
+                        <input type="password" class="form-input" id="globalQrConfirmPassword" placeholder="Konfirmasi password QR code">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Firebase Configuration (Untuk Sinkronisasi Multi-Device)</label>
+                        <textarea class="form-input" id="firebaseConfig" rows="6" placeholder='{"apiKey":"","authDomain":"","databaseURL":"","projectId":"","storageBucket":"","messagingSenderId":"","appId":""}'></textarea>
+                        <small style="color: #7f8c8d;">Dapatkan konfigurasi dari Firebase Console. Kosongkan jika tidak ingin menggunakan sinkronisasi.</small>
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn btn-success" onclick="saveSettings()">Simpan Pengaturan</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal untuk proteksi password QR Code -->
+    <div id="passwordModal" class="modal">
+        <div class="modal-content">
+            <h2 class="modal-title">Masukkan Password QR Code</h2>
+            <div class="form-group">
+                <label class="form-label">Password</label>
+                <input type="password" class="form-input" id="qrPasswordInput" placeholder="Masukkan password untuk melihat data">
+            </div>
+            <div class="form-actions">
+                <button class="btn btn-primary" onclick="checkQrPassword()">Buka Data</button>
+                <button class="btn btn-danger" onclick="closeModal()">Batal</button>
+            </div>
+            <p style="text-align: center; margin-top: 15px; color: #7f8c8d;">
+                Dapatkan password dari admin KSP Setya Karya
+            </p>
+        </div>
+    </div>
+    
+    <footer>
+        <p>© 2025 KSP Setya Karya Tanggulangin - Sistem Manajemen Nasabah</p>
+    </footer>
+
+    <script>
+        // Data nasabah
+        let customers = [];
+        let currentEditId = null;
+        let qrPasswordData = null;
+        let db = null;
+        let isOnline = false;
+        
+        // Pengaturan sistem
+        let systemSettings = {
+            adminUsername: "admin",
+            adminPassword: "admin123",
+            globalQrPassword: "ksp2025", // Password terpusat untuk semua QR code
+            firebaseConfig: null
+        };
+
+        // Fungsi untuk login
+        function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            if (username === systemSettings.adminUsername && password === systemSettings.adminPassword) {
+                document.getElementById('loginSection').style.display = 'none';
+                document.getElementById('mainSection').style.display = 'block';
+                loadData();
+                loadSettings();
+                initFirebase();
+            } else {
+                alert('Username atau password salah!');
+            }
+        }
+        
+        // Fungsi untuk logout
+        function logout() {
+            document.getElementById('loginSection').style.display = 'block';
+            document.getElementById('mainSection').style.display = 'none';
+        }
+        
+        // Fungsi untuk menampilkan tab
+        function showTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            if (tabName === 'view') {
+                document.querySelector('.tab:nth-child(1)').classList.add('active');
+                document.getElementById('viewTab').classList.add('active');
+            } else if (tabName === 'add') {
+                document.querySelector('.tab:nth-child(2)').classList.add('active');
+                document.getElementById('addTab').classList.add('active');
+            } else if (tabName === 'import') {
+                document.querySelector('.tab:nth-child(3)').classList.add('active');
+                document.getElementById('importTab').classList.add('active');
+            } else if (tabName === 'table') {
+                document.querySelector('.tab:nth-child(4)').classList.add('active');
+                document.getElementById('tableTab').classList.add('active');
+                renderTable();
+            } else if (tabName === 'settings') {
+                document.querySelector('.tab:nth-child(5)').classList.add('active');
+                document.getElementById('settingsTab').classList.add('active');
+            }
+        }
+        
+        // Inisialisasi Firebase
+        function initFirebase() {
+            try {
+                if (systemSettings.firebaseConfig) {
+                    const config = typeof systemSettings.firebaseConfig === 'string' 
+                        ? JSON.parse(systemSettings.firebaseConfig) 
+                        : systemSettings.firebaseConfig;
+                    
+                    firebase.initializeApp(config);
+                    db = firebase.database();
+                    
+                    // Setup listener untuk perubahan data
+                    db.ref('customers').on('value', (snapshot) => {
+                        const remoteData = snapshot.val();
+                        if (remoteData) {
+                            // Merge data lokal dengan data dari server
+                            const mergedData = mergeCustomers(customers, remoteData);
+                            if (JSON.stringify(mergedData) !== JSON.stringify(customers)) {
+                                customers = mergedData;
+                                createCustomerCards(customers);
+                                renderTable();
+                                saveData();
+                            }
+                        }
+                    });
+                    
+                    // Update status koneksi
+                    const connectedRef = firebase.database().ref(".info/connected");
+                    connectedRef.on("value", function(snap) {
+                        isOnline = snap.val() === true;
+                        updateConnectionStatus();
+                    });
+                }
+            } catch (error) {
+                console.error("Error initializing Firebase:", error);
+                isOnline = false;
+                updateConnectionStatus();
+            }
+        }
+        
+        // Update tampilan status koneksi
+        function updateConnectionStatus() {
+            const statusElement = document.getElementById('connectionStatus');
+            if (isOnline) {
+                statusElement.textContent = 'Terhubung - Data disinkronisasi dengan server';
+                statusElement.className = 'connection-status connection-online';
+            } else {
+                statusElement.textContent = 'Mode offline - Data disimpan secara lokal';
+                statusElement.className = 'connection-status connection-offline';
+            }
+        }
+        
+        // Fungsi untuk sinkronisasi data
+        function syncData() {
+            if (db) {
+                // Upload data lokal ke server
+                db.ref('customers').set(customers)
+                    .then(() => {
+                        alert('Data berhasil disinkronisasi dengan server!');
+                    })
+                    .catch((error) => {
+                        alert('Error sinkronisasi data: ' + error.message);
+                    });
+            } else {
+                alert('Firebase belum dikonfigurasi. Silakan setup di menu Pengaturan.');
+            }
+        }
+        
+        // Merge data lokal dan remote
+        function mergeCustomers(localData, remoteData) {
+            const merged = [...localData];
+            const remoteArray = Array.isArray(remoteData) ? remoteData : Object.values(remoteData);
+            
+            remoteArray.forEach(remoteItem => {
+                const existingIndex = merged.findIndex(item => item.id === remoteItem.id);
+                if (existingIndex === -1) {
+                    // Item baru dari remote, tambahkan
+                    merged.push(remoteItem);
+                } else {
+                    // Item sudah ada, pilih yang lebih baru berdasarkan timestamp atau version jika ada
+                    const localItem = merged[existingIndex];
+                    if ((remoteItem.updatedAt || 0) > (localItem.updatedAt || 0)) {
+                        merged[existingIndex] = remoteItem;
+                    }
+                }
+            });
+            
+            return merged;
+        }
+        
+        // Fungsi untuk memuat data dari localStorage
+        function loadData() {
+            const savedData = localStorage.getItem('kspSetyaKaryaData');
+            const savedSettings = localStorage.getItem('kspSetyaKaryaSettings');
+            
+            if (savedData) {
+                customers = JSON.parse(savedData);
+                createCustomerCards(customers);
+            } else {
+                // Data contoh jika tidak ada data yang disimpan
+                customers = [
+                    {
+                        id: 1,
+                        no: 1,
+                        customerId: "9/1/2025-1",
+                        tglDrop: "2025-09-01",
+                        nik: "9271025702780001",
+                        nama: "IRMAMATI SABAN",
+                        alamat: "PERIMA GRIPA ASHI RT 04/07 TANGGULANGIN SIDOARJO",
+                        dokumen: "ATM, TAB ATIM, USAHA OAI HIMA, SK KEMAKAN PANGKAI, 3",
+                        pinjamankin: "5,520.000",
+                        pinjamanki: "4",
+                        fotoNasabah: null,
+                        fotoRumah: null,
+                        updatedAt: Date.now()
+                    },
+                    {
+                        id: 2,
+                        no: 2,
+                        customerId: "9/1/2025-2",
+                        tglDrop: "2025-09-01",
+                        nik: "3312140804930001",
+                        nama: "BAMBANG PRASETTO",
+                        alamat: "BAMBANG POINT GIVING BAMBANGRING SIDOARJO",
+                        dokumen: "ATM, TAB BRU, 2 BUNK, SK PUTIH, USAH SKIA AN BAMBANG, AKTE LAHIR PUTIH AN RAKAA",
+                        pinjamankin: "6,000.000",
+                        pinjamanki: "5",
+                        fotoNasabah: null,
+                        fotoRumah: null,
+                        updatedAt: Date.now()
+                    }
+                ];
+                createCustomerCards(customers);
+            }
+            
+            if (savedSettings) {
+                const parsedSettings = JSON.parse(savedSettings);
+                systemSettings = {...systemSettings, ...parsedSettings};
+            }
+        }
+        
+        // Fungsi untuk memuat pengaturan
+        function loadSettings() {
+            document.getElementById('adminUsername').value = systemSettings.adminUsername;
+            document.getElementById('globalQrPassword').value = systemSettings.globalQrPassword;
+            
+            if (systemSettings.firebaseConfig) {
+                document.getElementById('firebaseConfig').value = 
+                    typeof systemSettings.firebaseConfig === 'string' 
+                    ? systemSettings.firebaseConfig 
+                    : JSON.stringify(systemSettings.firebaseConfig, null, 2);
+            }
+        }
+        
+        // Fungsi untuk menyimpan data ke localStorage
+        function saveData() {
+            localStorage.setItem('kspSetyaKaryaData', JSON.stringify(customers));
+            alert('Data berhasil disimpan secara lokal!');
+        }
+        
+        // Fungsi untuk menyimpan pengaturan
+        function saveSettings() {
+            const newUsername = document.getElementById('adminUsername').value;
+            const newPassword = document.getElementById('adminNewPassword').value;
+            const confirmPassword = document.getElementById('adminConfirmPassword').value;
+            const newQrPassword = document.getElementById('globalQrPassword').value;
+            const confirmQrPassword = document.getElementById('globalQrConfirmPassword').value;
+            const firebaseConfig = document.getElementById('firebaseConfig').value;
+            
+            if (newPassword && newPassword !== confirmPassword) {
+                alert('Password baru dan konfirmasi password tidak cocok!');
+                return;
+            }
+            
+            if (newQrPassword !== confirmQrPassword) {
+                alert('Password QR Code dan konfirmasi password tidak cocok!');
+                return;
+            }
+            
+            systemSettings.adminUsername = newUsername;
+            if (newPassword) {
+                systemSettings.adminPassword = newPassword;
+            }
+            
+            systemSettings.globalQrPassword = newQrPassword;
+            
+            try {
+                if (firebaseConfig.trim()) {
+                    systemSettings.firebaseConfig = JSON.parse(firebaseConfig);
+                } else {
+                    systemSettings.firebaseConfig = null;
+                }
+            } catch (e) {
+                alert('Format Firebase Configuration tidak valid!');
+                return;
+            }
+            
+            localStorage.setItem('kspSetyaKaryaSettings', JSON.stringify(systemSettings));
+            alert('Pengaturan berhasil disimpan!');
+            
+            // Re-inisialisasi Firebase jika konfigurasi berubah
+            if (firebaseConfig.trim()) {
+                if (firebase.apps.length > 0) {
+                    firebase.app().delete().then(() => {
+                        initFirebase();
+                    });
+                } else {
+                    initFirebase();
+                }
+            }
+        }
+        
+        // Fungsi untuk membuat kartu nasabah
+        function createCustomerCards(customersToShow) {
+            const container = document.getElementById('customerCards');
+            container.innerHTML = '';
+            
+            if (customersToShow.length === 0) {
+                container.innerHTML = '<div class="no-results">Tidak ada data nasabah yang ditemukan.</div>';
+                return;
+            }
+            
+            customersToShow.forEach(customer => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                
+                // Generate QR code
+                const qr = qrcode(0, 'M');
+                qr.addData(JSON.stringify({
+                    id: customer.id,
+                    customerId: customer.customerId,
+                    nama: customer.nama,
+                    nik: customer.nik,
+                    alamat: customer.alamat,
+                    pinjamankin: customer.pinjamankin,
+                    pinjamanki: customer.pinjamanki,
+                    password: systemSettings.globalQrPassword
+                }));
+                qr.make();
+                
+                const qrSvg = qr.createSvgTag({scale: 4, margin: 0});
+                
+                card.innerHTML = `
+                    <div class="card-header">
+                        <div class="customer-id">${customer.customerId}</div>
+                    </div>
+                    <div class="card-body">
+                        <div class="customer-name">${customer.nama}</div>
+                        <div class="customer-detail"><span class="detail-label">NIK:</span> ${customer.nik}</div>
+                        <div class="customer-detail"><span class="detail-label">Alamat:</span> ${customer.alamat}</div>
+                        <div class="customer-detail"><span class="detail-label">Pinjaman:</span> Rp ${customer.pinjamankin}</div>
+                        <div class="customer-detail"><span class="detail-label">Pinjamanki:</span> ${customer.pinjamanki}</div>
+                        <div class="qr-code">
+                            ${qrSvg}
+                        </div>
+                        <div class="actions">
+                            <button class="btn btn-primary" onclick="viewCustomer(${customer.id})">Lihat Detail</button>
+                            <button class="btn btn-warning" onclick="editCustomer(${customer.id})">Edit</button>
+                            <button class="btn btn-danger" onclick="deleteCustomer(${customer.id})">Hapus</button>
+                            <button class="btn btn-success" onclick="downloadQRCode(${customer.id})">Download QR</button>
+                        </div>
+                    </div>
+                `;
+                
+                container.appendChild(card);
+            });
+        }
+        
+        // Fungsi untuk melihat detail nasabah
+        function viewCustomer(id) {
+            const customer = customers.find(c => c.id === id);
+            if (customer) {
+                // Simpan data untuk modal
+                qrPasswordData = customer;
+                // Tampilkan modal password
+                document.getElementById('passwordModal').style.display = 'flex';
+            }
+        }
+        
+        // Fungsi untuk mengecek password QR code
+        function checkQrPassword() {
+            const password = document.getElementById('qrPasswordInput').value;
+            
+            if (password === systemSettings.globalQrPassword) {
+                // Tampilkan data nasabah
+                alert(`Data Nasabah:\n\nNama: ${qrPasswordData.nama}\nNIK: ${qrPasswordData.nik}\nAlamat: ${qrPasswordData.alamat}\nPinjaman: Rp ${qrPasswordData.pinjamankin}\nPinjamanki: ${qrPasswordData.pinjamanki}`);
+                closeModal();
+            } else {
+                alert('Password salah!');
+            }
+        }
+        
+        // Fungsi untuk menutup modal
+        function closeModal() {
+            document.getElementById('passwordModal').style.display = 'none';
+            document.getElementById('qrPasswordInput').value = '';
+            qrPasswordData = null;
+        }
+        
+        // Fungsi untuk mengedit nasabah
+        function editCustomer(id) {
+            const customer = customers.find(c => c.id === id);
+            if (customer) {
+                currentEditId = id;
+                
+                // Isi form dengan data nasabah
+                document.getElementById('no').value = customer.no;
+                document.getElementById('customerId').value = customer.customerId;
+                document.getElementById('tglDrop').value = customer.tglDrop;
+                document.getElementById('nik').value = customer.nik;
+                document.getElementById('nama').value = customer.nama;
+                document.getElementById('alamat').value = customer.alamat;
+                document.getElementById('dokumen').value = customer.dokumen;
+                document.getElementById('pinjamankin').value = customer.pinjamankin;
+                document.getElementById('pinjamanki').value = customer.pinjamanki;
+                
+                // Tampilkan preview foto jika ada
+                if (customer.fotoNasabah) {
+                    document.getElementById('previewFotoNasabah').innerHTML = 
+                        `<img src="${customer.fotoNasabah}" alt="Foto Nasabah" class="preview-image">`;
+                }
+                
+                if (customer.fotoRumah) {
+                    document.getElementById('previewFotoRumah').innerHTML = 
+                        `<img src="${customer.fotoRumah}" alt="Foto Rumah" class="preview-image">`;
+                }
+                
+                // Pindah ke tab tambah nasabah
+                showTab('add');
+            }
+        }
+        
+        // Fungsi untuk menghapus nasabah
+        function deleteCustomer(id) {
+            if (confirm('Apakah Anda yakin ingin menghapus nasabah ini?')) {
+                customers = customers.filter(c => c.id !== id);
+                createCustomerCards(customers);
+                renderTable();
+                saveData();
+                
+                // Hapus juga dari Firebase jika terhubung
+                if (db) {
+                    db.ref('customers/' + id).remove();
+                }
+            }
+        }
+        
+        // Fungsi untuk mendownload QR code
+        function downloadQRCode(id) {
+            const customer = customers.find(c => c.id === id);
+            if (customer) {
+                // Buat QR code
+                const qr = qrcode(0, 'M');
+                qr.addData(JSON.stringify({
+                    id: customer.id,
+                    customerId: customer.customerId,
+                    nama: customer.nama,
+                    nik: customer.nik,
+                    alamat: customer.alamat,
+                    pinjamankin: customer.pinjamankin,
+                    pinjamanki: customer.pinjamanki,
+                    password: systemSettings.globalQrPassword
+                }));
+                qr.make();
+                
+                const svgString = qr.createSvgTag({scale: 8, margin: 2});
+                const blob = new Blob([svgString], {type: 'image/svg+xml'});
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `QR_${customer.nama.replace(/\s+/g, '_')}.svg`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+        }
+        
+        // Fungsi untuk merender tabel
+        function renderTable() {
+            const tableBody = document.querySelector('#customersTable tbody');
+            tableBody.innerHTML = '';
+            
+            customers.forEach(customer => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${customer.no}</td>
+                    <td>${customer.customerId}</td>
+                    <td>${customer.nama}</td>
+                    <td>${customer.nik}</td>
+                    <td>${customer.alamat}</td>
+                    <td>Rp ${customer.pinjamankin}</td>
+                    <td>${customer.fotoNasabah ? 'Ya' : 'Tidak'}</td>
+                    <td>${customer.fotoRumah ? 'Ya' : 'Tidak'}</td>
+                    <td class="action-cell">
+                        <button class="btn btn-primary" onclick="viewCustomer(${customer.id})">Lihat</button>
+                        <button class="btn btn-warning" onclick="editCustomer(${customer.id})">Edit</button>
+                        <button class="btn btn-danger" onclick="deleteCustomer(${customer.id})">Hapus</button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+        
+        // Fungsi untuk menangani form tambah/edit nasabah
+        document.getElementById('customerForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData();
+            formData.append('no', document.getElementById('no').value);
+            formData.append('customerId', document.getElementById('customerId').value);
+            formData.append('tglDrop', document.getElementById('tglDrop').value);
+            formData.append('nik', document.getElementById('nik').value);
+            formData.append('nama', document.getElementById('nama').value);
+            formData.append('alamat', document.getElementById('alamat').value);
+            formData.append('dokumen', document.getElementById('dokumen').value);
+            formData.append('pinjamankin', document.getElementById('pinjamankin').value);
+            formData.append('pinjamanki', document.getElementById('pinjamanki').value);
+            
+            const fotoNasabahFile = document.getElementById('fotoNasabah').files[0];
+            const fotoRumahFile = document.getElementById('fotoRumah').files[0];
+            
+            if (fotoNasabahFile) {
+                formData.append('fotoNasabah', fotoNasabahFile);
+            }
+            
+            if (fotoRumahFile) {
+                formData.append('fotoRumah', fotoRumahFile);
+            }
+            
+            // Proses data (simpan ke array customers)
+            const customerData = {
+                id: currentEditId || Date.now(),
+                no: parseInt(document.getElementById('no').value),
+                customerId: document.getElementById('customerId').value,
+                tglDrop: document.getElementById('tglDrop').value,
+                nik: document.getElementById('nik').value,
+                nama: document.getElementById('nama').value,
+                alamat: document.getElementById('alamat').value,
+                dokumen: document.getElementById('dokumen').value,
+                pinjamankin: document.getElementById('pinjamankin').value,
+                pinjamanki: document.getElementById('pinjamanki').value,
+                fotoNasabah: null,
+                fotoRumah: null,
+                updatedAt: Date.now()
+            };
+            
+            // Proses foto jika ada
+            if (fotoNasabahFile) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    customerData.fotoNasabah = e.target.result;
+                    saveCustomerData(customerData);
+                };
+                reader.readAsDataURL(fotoNasabahFile);
+            } else if (currentEditId) {
+                // Jika edit dan tidak ada foto baru, gunakan foto lama
+                const existingCustomer = customers.find(c => c.id === currentEditId);
+                if (existingCustomer) {
+                    customerData.fotoNasabah = existingCustomer.fotoNasabah;
+                }
+                saveCustomerData(customerData);
+            } else {
+                saveCustomerData(customerData);
+            }
+            
+            // Proses foto rumah jika ada
+            if (fotoRumahFile) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    customerData.fotoRumah = e.target.result;
+                    saveCustomerData(customerData);
+                };
+                reader.readAsDataURL(fotoRumahFile);
+            } else if (currentEditId) {
+                // Jika edit dan tidak ada foto baru, gunakan foto lama
+                const existingCustomer = customers.find(c => c.id === currentEditId);
+                if (existingCustomer) {
+                    customerData.fotoRumah = existingCustomer.fotoRumah;
+                }
+                saveCustomerData(customerData);
+            } else {
+                saveCustomerData(customerData);
+            }
+        });
+        
+        // Fungsi untuk menyimpan data nasabah
+        function saveCustomerData(customerData) {
+            if (currentEditId) {
+                // Edit nasabah yang sudah ada
+                const index = customers.findIndex(c => c.id === currentEditId);
+                if (index !== -1) {
+                    customers[index] = customerData;
+                }
+            } else {
+                // Tambah nasabah baru
+                customers.push(customerData);
+            }
+            
+            createCustomerCards(customers);
+            renderTable();
+            saveData();
+            
+            // Simpan ke Firebase jika terhubung
+            if (db) {
+                db.ref('customers/' + customerData.id).set(customerData);
+            }
+            
+            // Reset form
+            document.getElementById('customerForm').reset();
+            document.getElementById('previewFotoNasabah').innerHTML = '';
+            document.getElementById('previewFotoRumah').innerHTML = '';
+            currentEditId = null;
+            
+            alert('Data nasabah berhasil disimpan!');
+            showTab('view');
+        }
+        
+        // Fungsi untuk export data ke CSV
+        function exportToCSV() {
+            if (customers.length === 0) {
+                alert('Tidak ada data untuk diexport!');
+                return;
+            }
+            
+            const headers = ['No', 'Customer ID', 'Tanggal Drop', 'NIK', 'Nama', 'Alamat', 'Dokumen', 'Pinjaman (Rp)', 'Pinjamanki'];
+            const csvData = [headers];
+            
+            customers.forEach(customer => {
+                csvData.push([
+                    customer.no,
+                    customer.customerId,
+                    customer.tglDrop,
+                    customer.nik,
+                    customer.nama,
+                    customer.alamat,
+                    customer.dokumen,
+                    customer.pinjamankin,
+                    customer.pinjamanki
+                ]);
+            });
+            
+            const csvContent = csvData.map(row => row.map(field => `"${field}"`).join(',')).join('\n');
+            const blob = new Blob([csvContent], {type: 'text/csv;charset=utf-8;'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `nasabah_ksp_${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+        
+        // Fungsi untuk preview foto
+        document.getElementById('fotoNasabah').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('previewFotoNasabah').innerHTML = 
+                        `<img src="${e.target.result}" alt="Preview Foto Nasabah" class="preview-image">`;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+        
+        document.getElementById('fotoRumah').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('previewFotoRumah').innerHTML = 
+                        `<img src="${e.target.result}" alt="Preview Foto Rumah" class="preview-image">`;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+        
+        // Fungsi untuk pencarian
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const filteredCustomers = customers.filter(customer => 
+                customer.nama.toLowerCase().includes(searchTerm) ||
+                customer.nik.toLowerCase().includes(searchTerm) ||
+                customer.alamat.toLowerCase().includes(searchTerm) ||
+                customer.customerId.toLowerCase().includes(searchTerm)
+            );
+            createCustomerCards(filteredCustomers);
+        });
+        
+        document.getElementById('tableSearchInput').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const filteredCustomers = customers.filter(customer => 
+                customer.nama.toLowerCase().includes(searchTerm) ||
+                customer.nik.toLowerCase().includes(searchTerm) ||
+                customer.alamat.toLowerCase().includes(searchTerm) ||
+                customer.customerId.toLowerCase().includes(searchTerm)
+            );
+            
+            const tableBody = document.querySelector('#customersTable tbody');
+            tableBody.innerHTML = '';
+            
+            filteredCustomers.forEach(customer => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${customer.no}</td>
+                    <td>${customer.customerId}</td>
+                    <td>${customer.nama}</td>
+                    <td>${customer.nik}</td>
+                    <td>${customer.alamat}</td>
+                    <td>Rp ${customer.pinjamankin}</td>
+                    <td>${customer.fotoNasabah ? 'Ya' : 'Tidak'}</td>
+                    <td>${customer.fotoRumah ? 'Ya' : 'Tidak'}</td>
+                    <td class="action-cell">
+                        <button class="btn btn-primary" onclick="viewCustomer(${customer.id})">Lihat</button>
+                        <button class="btn btn-warning" onclick="editCustomer(${customer.id})">Edit</button>
+                        <button class="btn btn-danger" onclick="deleteCustomer(${customer.id})">Hapus</button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        });
+        
+        // Fungsi untuk drag and drop file
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        
+        dropZone.addEventListener('click', () => {
+            fileInput.click();
+        });
+        
+        fileInput.addEventListener('change', handleFileSelect);
+        
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, preventDefaults, false);
+        });
+        
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, highlight, false);
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, unhighlight, false);
+        });
+        
+        function highlight() {
+            dropZone.style.backgroundColor = '#f0f8ff';
+        }
+        
+        function unhighlight() {
+            dropZone.style.backgroundColor = '';
+        }
+        
+        dropZone.addEventListener('drop', handleDrop, false);
+        
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            handleFiles(files);
+        }
+        
+        function handleFileSelect(e) {
+            const files = e.target.files;
+            handleFiles(files);
+        }
+        
+        function handleFiles(files) {
+            if (files.length > 0) {
+                const file = files[0];
+                const fileExtension = file.name.split('.').pop().toLowerCase();
+                
+                if (fileExtension === 'csv') {
+                    parseCSV(file);
+                } else if (fileExtension === 'xlsx' || fileExtension === 'xls') {
+                    parseExcel(file);
+                } else {
+                    alert('Format file tidak didukung. Harap gunakan file CSV atau Excel.');
+                }
+            }
+        }
+        
+        function parseCSV(file) {
+            Papa.parse(file, {
+                complete: function(results) {
+                    importData(results.data);
+                },
+                header: true,
+                skipEmptyLines: true
+            });
+        }
+        
+        function parseExcel(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                importData(jsonData);
+            };
+            reader.readAsArrayBuffer(file);
+        }
+        
+        function importData(data) {
+            if (data.length === 0) {
+                alert('File tidak berisi data atau format tidak sesuai!');
+                return;
+            }
+            
+            // Validasi kolom minimal
+            const firstRow = data[0];
+            const requiredFields = ['No', 'Customer ID', 'NIK', 'Nama', 'Alamat'];
+            const missingFields = requiredFields.filter(field => !(field in firstRow));
+            
+            if (missingFields.length > 0) {
+                alert(`File tidak memiliki kolom yang diperlukan: ${missingFields.join(', ')}`);
+                return;
+            }
+            
+            // Konfirmasi import
+            if (!confirm(`Anda akan mengimpor ${data.length} data nasabah. Lanjutkan?`)) {
+                return;
+            }
+            
+            // Proses data
+            const importedCustomers = data.map((row, index) => {
+                return {
+                    id: Date.now() + index, // ID unik
+                    no: row.No || 0,
+                    customerId: row['Customer ID'] || '',
+                    tglDrop: row['Tanggal Drop'] || new Date().toISOString().split('T')[0],
+                    nik: row.NIK || '',
+                    nama: row.Nama || '',
+                    alamat: row.Alamat || '',
+                    dokumen: row.Dokumen || '',
+                    pinjamankin: row['Pinjaman (Rp)'] || '0',
+                    pinjamanki: row.Pinjamanki || '',
+                    fotoNasabah: null,
+                    fotoRumah: null,
+                    updatedAt: Date.now()
+                };
+            });
+            
+            // Gabungkan dengan data yang ada
+            customers = [...customers, ...importedCustomers];
+            createCustomerCards(customers);
+            renderTable();
+            saveData();
+            
+            alert(`Berhasil mengimpor ${importedCustomers.length} data nasabah!`);
+            showTab('view');
+        }
+        
+        // Inisialisasi saat halaman dimuat
+        window.onload = function() {
+            // Setup event listener untuk form
+            document.getElementById('customerForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                // Handler sudah didefinisikan di atas
+            });
+            
+            // Load data dan settings
+            loadSettings();
+        };
+    </script>
+</body>
+</html>
