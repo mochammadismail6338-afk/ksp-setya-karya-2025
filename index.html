@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Database Nasabah KSP Setya Karya</title>
+    <title>Database Nasabah KSP Setya Karya - Scan Mode Aktif</title>
     <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <!-- Tambahkan Firebase untuk sinkronisasi data -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
+        /* CSS Anda yang sudah ada */
         * {
             box-sizing: border-box;
             margin: 0;
@@ -342,12 +342,6 @@
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
         }
         
-        .login-title {
-            text-align: center;
-            margin-bottom: 15px;
-            color: #2c3e50;
-        }
-        
         /* Settings form */
         .settings-container {
             max-width: 500px;
@@ -406,6 +400,8 @@
             border-radius: 10px;
             width: 90%;
             max-width: 400px;
+            max-height: 90vh; /* Batasan tinggi untuk scroll */
+            overflow-y: auto; /* Aktifkan scroll jika kontennya panjang */
         }
         
         .modal-title {
@@ -531,10 +527,10 @@
     <div class="container">
         <header>
             <h1>DATABASE NASABAH KSP SETYA KARYA</h1>
-            <p class="subtitle">Sistem Manajemen Data Nasabah dengan QR Code</p>
+            <p class="subtitle">Sistem Manajemen Data Nasabah dengan QR Code (Scan Mode Aktif)</p>
         </header>
         
-        <div id="loginSection">
+        <div id="loginSection" style="display: none;">
             <div class="login-container">
                 <h2 class="login-title">Login Admin</h2>
                 <div class="form-group">
@@ -549,7 +545,7 @@
                     <button class="btn btn-primary" onclick="login()">Login</button>
                 </div>
                 <p style="text-align: center; margin-top: 20px; color: #7f8c8d;">
-                    Gunakan username: <strong>admin</strong> dan password: <strong>admin123</strong> untuk login
+                    Username: <strong>admin</strong> | Password: <strong>admin123</strong> (Segera ganti di Pengaturan)
                 </p>
             </div>
         </div>
@@ -575,24 +571,23 @@
                         <button class="btn btn-success" onclick="exportToCSV()">
                             📥 Export CSV
                         </button>
-                        <button class="btn btn-primary" onclick="saveData()">
-                            💾 Simpan Data
+                        <button class="btn btn-primary" onclick="saveData(true)">
+                            💾 Simpan Lokal
                         </button>
                         <button class="btn btn-warning" onclick="syncData()">
-                            🔄 Sinkronisasi
+                            🔄 Sinkronisasi Server
                         </button>
                     </div>
                 </div>
                 
                 <div class="card-container" id="customerCards">
-                    <!-- Kartu nasabah akan di-generate oleh JavaScript -->
-                </div>
+                    </div>
             </div>
             
             <div id="addTab" class="tab-content">
                 <div class="form-section">
-                    <h2 class="form-title">Tambah Data Nasabah Baru</h2>
-                    <form id="customerForm" enctype="multipart/form-data">
+                    <h2 class="form-title" id="formTitle">Tambah Data Nasabah Baru</h2>
+                    <form id="customerForm">
                         <div class="form-grid">
                             <div class="form-group">
                                 <label class="form-label">No</label>
@@ -630,22 +625,27 @@
                                 <label class="form-label">Pinjamanki</label>
                                 <input type="text" class="form-input" id="pinjamanki" required>
                             </div>
+                            
                             <div class="form-group">
-                                <label class="form-label">Foto Nasabah</label>
-                                <input type="file" class="form-input" id="fotoNasabah" accept="image/*" capture="user">
-                                <small style="color: #7f8c8d;">Ambil foto dengan kamera</small>
+                                <label class="form-label">Foto Nasabah (URL)</label>
+                                <input type="text" class="form-input" id="fotoNasabah" placeholder="Paste link foto (Google Drive/Dropbox publik)">
+                                <small style="color: #dc3545; font-weight: 600;">
+                                    ⚠️ **Wajib link publik (Siapa pun dengan link)** agar foto muncul saat di-scan.
+                                </small>
                                 <div id="previewFotoNasabah" style="margin-top: 10px;"></div>
                             </div>
                             <div class="form-group">
-                                <label class="form-label">Foto Rumah Nasabah</label>
-                                <input type="file" class="form-input" id="fotoRumah" accept="image/*" capture="environment">
-                                <small style="color: #7f8c8d;">Ambil foto dengan kamera</small>
+                                <label class="form-label">Foto Rumah Nasabah (URL)</label>
+                                <input type="text" class="form-input" id="fotoRumah" placeholder="Paste link foto (Google Drive/Dropbox publik)">
+                                <small style="color: #dc3545; font-weight: 600;">
+                                    ⚠️ **Wajib link publik (Siapa pun dengan link)** agar foto muncul saat di-scan.
+                                </small>
                                 <div id="previewFotoRumah" style="margin-top: 10px;"></div>
                             </div>
-                        </div>
+                            </div>
                         <div class="form-actions">
-                            <button type="submit" class="btn btn-success">Simpan Data Nasabah</button>
-                            <button type="reset" class="btn btn-danger">Reset Form</button>
+                            <button type="submit" class="btn btn-success" id="submitButton">Simpan Data Nasabah</button>
+                            <button type="button" class="btn btn-danger" onclick="resetForm()">Reset/Batal Edit</button>
                         </div>
                     </form>
                 </div>
@@ -675,7 +675,7 @@
                         <button class="btn btn-success" onclick="exportToCSV()">
                             📥 Export CSV
                         </button>
-                        <button class="btn btn-primary" onclick="saveData()">
+                        <button class="btn btn-primary" onclick="saveData(true)">
                             💾 Simpan Data
                         </button>
                     </div>
@@ -697,8 +697,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <!-- Data akan diisi oleh JavaScript -->
-                        </tbody>
+                            </tbody>
                     </table>
                 </div>
             </div>
@@ -728,8 +727,8 @@
                         <input type="password" class="form-input" id="globalQrConfirmPassword" placeholder="Konfirmasi password QR code">
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Firebase Configuration (Untuk Sinkronisasi Multi-Device)</label>
-                        <textarea class="form-input" id="firebaseConfig" rows="6" placeholder='{"apiKey":"","authDomain":"","databaseURL":"","projectId":"","storageBucket":"","messagingSenderId":"","appId":""}'></textarea>
+                        <label class="form-label">Firebase Configuration (JSON)</label>
+                        <textarea class="form-input" id="firebaseConfig" rows="6" placeholder='{"apiKey":"...","databaseURL":"..."}'></textarea>
                         <small style="color: #7f8c8d;">Dapatkan konfigurasi dari Firebase Console. Kosongkan jika tidak ingin menggunakan sinkronisasi.</small>
                     </div>
                     <div class="form-actions">
@@ -740,7 +739,6 @@
         </div>
     </div>
     
-    <!-- Modal untuk proteksi password QR Code -->
     <div id="passwordModal" class="modal">
         <div class="modal-content">
             <h2 class="modal-title">Masukkan Password QR Code</h2>
@@ -770,64 +768,62 @@
         let db = null;
         let isOnline = false;
         
-        // Pengaturan sistem
+        // Pengaturan sistem (default)
         let systemSettings = {
             adminUsername: "admin",
-            adminPassword: "admin123",
-            globalQrPassword: "ksp2025", // Password terpusat untuk semua QR code
+            adminPassword: "admin123", 
+            globalQrPassword: "ksp2025", 
             firebaseConfig: null
         };
 
-        // Fungsi untuk login
-        function login() {
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            
-            if (username === systemSettings.adminUsername && password === systemSettings.adminPassword) {
-                document.getElementById('loginSection').style.display = 'none';
-                document.getElementById('mainSection').style.display = 'block';
-                loadData();
-                loadSettings();
-                initFirebase();
-            } else {
-                alert('Username atau password salah!');
+        // --- FUNGSI UTILITY ---
+        function generateUniqueId() {
+             return Date.now() + Math.random().toString(36).substr(2, 9);
+        }
+
+        function resetForm() {
+            document.getElementById('customerForm').reset();
+            document.getElementById('formTitle').textContent = 'Tambah Data Nasabah Baru';
+            document.getElementById('submitButton').textContent = 'Simpan Data Nasabah';
+            document.getElementById('previewFotoNasabah').innerHTML = '';
+            document.getElementById('previewFotoRumah').innerHTML = '';
+            currentEditId = null;
+        }
+
+        function getDirectGDriveUrl(url) {
+            // Mengubah URL sharing Google Drive menjadi URL direct content (embed)
+            try {
+                if (url.includes("drive.google.com/file/d/")) {
+                    const match = url.match(/d\/([a-zA-Z0-9_-]+)/);
+                    if (match && match[1]) {
+                        return `https://drive.google.com/uc?id=${match[1]}`;
+                    }
+                }
+                return url; // Kembalikan URL asli jika format tidak dikenali
+            } catch (e) {
+                return url;
             }
         }
         
-        // Fungsi untuk logout
-        function logout() {
-            document.getElementById('loginSection').style.display = 'block';
-            document.getElementById('mainSection').style.display = 'none';
+        function loginSuccess() {
+            document.getElementById('loginSection').style.display = 'none';
+            document.getElementById('mainSection').style.display = 'block';
+            initFirebase();
+            createCustomerCards(customers);
         }
+
+        // --- END FUNGSI UTILITY ---
+
+
+        // --- FIREBASE DAN LOCAL STORAGE ---
         
-        // Fungsi untuk menampilkan tab
-        function showTab(tabName) {
-            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            
-            if (tabName === 'view') {
-                document.querySelector('.tab:nth-child(1)').classList.add('active');
-                document.getElementById('viewTab').classList.add('active');
-            } else if (tabName === 'add') {
-                document.querySelector('.tab:nth-child(2)').classList.add('active');
-                document.getElementById('addTab').classList.add('active');
-            } else if (tabName === 'import') {
-                document.querySelector('.tab:nth-child(3)').classList.add('active');
-                document.getElementById('importTab').classList.add('active');
-            } else if (tabName === 'table') {
-                document.querySelector('.tab:nth-child(4)').classList.add('active');
-                document.getElementById('tableTab').classList.add('active');
-                renderTable();
-            } else if (tabName === 'settings') {
-                document.querySelector('.tab:nth-child(5)').classList.add('active');
-                document.getElementById('settingsTab').classList.add('active');
-            }
-        }
-        
-        // Inisialisasi Firebase
         function initFirebase() {
             try {
                 if (systemSettings.firebaseConfig) {
+                    if (firebase.apps.length > 0) {
+                        firebase.app().delete();
+                    }
+                    
                     const config = typeof systemSettings.firebaseConfig === 'string' 
                         ? JSON.parse(systemSettings.firebaseConfig) 
                         : systemSettings.firebaseConfig;
@@ -835,27 +831,25 @@
                     firebase.initializeApp(config);
                     db = firebase.database();
                     
-                    // Setup listener untuk perubahan data
                     db.ref('customers').on('value', (snapshot) => {
                         const remoteData = snapshot.val();
                         if (remoteData) {
-                            // Merge data lokal dengan data dari server
-                            const mergedData = mergeCustomers(customers, remoteData);
-                            if (JSON.stringify(mergedData) !== JSON.stringify(customers)) {
-                                customers = mergedData;
-                                createCustomerCards(customers);
-                                renderTable();
-                                saveData();
-                            }
+                            customers = mergeCustomers(customers, remoteData);
+                            createCustomerCards(customers);
+                            renderTable();
+                            saveData(false); 
                         }
                     });
                     
-                    // Update status koneksi
                     const connectedRef = firebase.database().ref(".info/connected");
                     connectedRef.on("value", function(snap) {
                         isOnline = snap.val() === true;
                         updateConnectionStatus();
                     });
+
+                } else {
+                    isOnline = false;
+                    updateConnectionStatus();
                 }
             } catch (error) {
                 console.error("Error initializing Firebase:", error);
@@ -864,7 +858,6 @@
             }
         }
         
-        // Update tampilan status koneksi
         function updateConnectionStatus() {
             const statusElement = document.getElementById('connectionStatus');
             if (isOnline) {
@@ -876,97 +869,36 @@
             }
         }
         
-        // Fungsi untuk sinkronisasi data
-        function syncData() {
-            if (db) {
-                // Upload data lokal ke server
-                db.ref('customers').set(customers)
-                    .then(() => {
-                        alert('Data berhasil disinkronisasi dengan server!');
-                    })
-                    .catch((error) => {
-                        alert('Error sinkronisasi data: ' + error.message);
-                    });
-            } else {
-                alert('Firebase belum dikonfigurasi. Silakan setup di menu Pengaturan.');
-            }
-        }
-        
-        // Merge data lokal dan remote
-        function mergeCustomers(localData, remoteData) {
-            const merged = [...localData];
-            const remoteArray = Array.isArray(remoteData) ? remoteData : Object.values(remoteData);
-            
+        function mergeCustomers(localData, remoteObject) {
+            const remoteArray = remoteObject ? Object.values(remoteObject) : [];
+            const mergedMap = new Map();
+
+            localData.forEach(item => mergedMap.set(item.customerId, item));
+
             remoteArray.forEach(remoteItem => {
-                const existingIndex = merged.findIndex(item => item.id === remoteItem.id);
-                if (existingIndex === -1) {
-                    // Item baru dari remote, tambahkan
-                    merged.push(remoteItem);
-                } else {
-                    // Item sudah ada, pilih yang lebih baru berdasarkan timestamp atau version jika ada
-                    const localItem = merged[existingIndex];
-                    if ((remoteItem.updatedAt || 0) > (localItem.updatedAt || 0)) {
-                        merged[existingIndex] = remoteItem;
-                    }
+                const localItem = mergedMap.get(remoteItem.customerId);
+                if (!localItem || (remoteItem.updatedAt || 0) >= (localItem.updatedAt || 0)) {
+                    mergedMap.set(remoteItem.customerId, remoteItem);
                 }
             });
             
-            return merged;
+            return Array.from(mergedMap.values());
         }
         
-        // Fungsi untuk memuat data dari localStorage
         function loadData() {
             const savedData = localStorage.getItem('kspSetyaKaryaData');
-            const savedSettings = localStorage.getItem('kspSetyaKaryaSettings');
-            
             if (savedData) {
                 customers = JSON.parse(savedData);
-                createCustomerCards(customers);
-            } else {
-                // Data contoh jika tidak ada data yang disimpan
-                customers = [
-                    {
-                        id: 1,
-                        no: 1,
-                        customerId: "9/1/2025-1",
-                        tglDrop: "2025-09-01",
-                        nik: "9271025702780001",
-                        nama: "IRMAMATI SABAN",
-                        alamat: "PERIMA GRIPA ASHI RT 04/07 TANGGULANGIN SIDOARJO",
-                        dokumen: "ATM, TAB ATIM, USAHA OAI HIMA, SK KEMAKAN PANGKAI, 3",
-                        pinjamankin: "5,520.000",
-                        pinjamanki: "4",
-                        fotoNasabah: null,
-                        fotoRumah: null,
-                        updatedAt: Date.now()
-                    },
-                    {
-                        id: 2,
-                        no: 2,
-                        customerId: "9/1/2025-2",
-                        tglDrop: "2025-09-01",
-                        nik: "3312140804930001",
-                        nama: "BAMBANG PRASETTO",
-                        alamat: "BAMBANG POINT GIVING BAMBANGRING SIDOARJO",
-                        dokumen: "ATM, TAB BRU, 2 BUNK, SK PUTIH, USAH SKIA AN BAMBANG, AKTE LAHIR PUTIH AN RAKAA",
-                        pinjamankin: "6,000.000",
-                        pinjamanki: "5",
-                        fotoNasabah: null,
-                        fotoRumah: null,
-                        updatedAt: Date.now()
-                    }
-                ];
-                createCustomerCards(customers);
             }
-            
+        }
+        
+        function loadSettings() {
+            const savedSettings = localStorage.getItem('kspSetyaKaryaSettings');
             if (savedSettings) {
                 const parsedSettings = JSON.parse(savedSettings);
                 systemSettings = {...systemSettings, ...parsedSettings};
             }
-        }
-        
-        // Fungsi untuk memuat pengaturan
-        function loadSettings() {
+            
             document.getElementById('adminUsername').value = systemSettings.adminUsername;
             document.getElementById('globalQrPassword').value = systemSettings.globalQrPassword;
             
@@ -977,14 +909,349 @@
                     : JSON.stringify(systemSettings.firebaseConfig, null, 2);
             }
         }
-        
-        // Fungsi untuk menyimpan data ke localStorage
-        function saveData() {
+
+        function saveData(show_alert = true) {
             localStorage.setItem('kspSetyaKaryaData', JSON.stringify(customers));
-            alert('Data berhasil disimpan secara lokal!');
+            if (show_alert) {
+                 alert('Data berhasil disimpan secara lokal!');
+            }
         }
         
-        // Fungsi untuk menyimpan pengaturan
+        function syncData() {
+            if (db && isOnline) {
+                const customersObject = customers.reduce((obj, customer) => {
+                    obj[customer.customerId] = customer;
+                    return obj;
+                }, {});
+
+                db.ref('customers').set(customersObject)
+                    .then(() => {
+                        alert('Data berhasil disinkronisasi ke server!');
+                    })
+                    .catch((error) => {
+                        alert('Error sinkronisasi data: ' + error.message);
+                    });
+            } else {
+                alert('Firebase tidak terhubung atau belum dikonfigurasi. Silakan cek Pengaturan.');
+            }
+        }
+        // --- END FIREBASE DAN LOCAL STORAGE ---
+
+
+        // --- LOGIKA UTAMA APLIKASI ---
+
+        function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            if (username === systemSettings.adminUsername && password === systemSettings.adminPassword) {
+                localStorage.setItem('kspSetyaKaryaLoggedIn', 'true'); // Simpan status login
+                loginSuccess();
+            } else {
+                alert('Username atau password salah!');
+            }
+        }
+        
+        function logout() {
+            localStorage.removeItem('kspSetyaKaryaLoggedIn');
+            document.getElementById('loginSection').style.display = 'block';
+            document.getElementById('mainSection').style.display = 'none';
+        }
+        
+        function showTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            const tabMap = {
+                'view': 1, 'add': 2, 'import': 3, 'table': 4, 'settings': 5
+            };
+            
+            if (tabMap[tabName]) {
+                document.querySelector(`.tab:nth-child(${tabMap[tabName]})`).classList.add('active');
+                document.getElementById(`${tabName}Tab`).classList.add('active');
+            }
+
+            if (tabName === 'table') {
+                 renderTable();
+            }
+            if (tabName === 'add') {
+                 resetForm(); 
+            }
+        }
+        
+        function createCustomerCards(customersToShow) {
+            const container = document.getElementById('customerCards');
+            container.innerHTML = '';
+            
+            if (customersToShow.length === 0) {
+                container.innerHTML = '<div class="no-results">Tidak ada data nasabah yang ditemukan.</div>';
+                return;
+            }
+            
+            customersToShow.forEach(customer => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                
+                // Konten QR Code: URL aplikasi + CustomerID
+                // Ganti 'index.html' dengan URL GitHub Pages Anda saat dipublikasikan
+                const appUrl = window.location.origin + window.location.pathname; 
+                const qrContent = `${appUrl}?customerId=${customer.customerId}`;
+
+                const qr = qrcode(0, 'M');
+                qr.addData(qrContent);
+                qr.make();
+                
+                const qrSvg = qr.createSvgTag({scale: 4, margin: 0});
+                
+                card.innerHTML = `
+                    <div class="card-header">
+                        <div class="customer-id">${customer.customerId}</div>
+                    </div>
+                    <div class="card-body">
+                        <div class="customer-name">${customer.nama}</div>
+                        <div class="customer-detail"><span class="detail-label">NIK:</span> ${customer.nik}</div>
+                        <div class="customer-detail"><span class="detail-label">Pinjaman:</span> Rp ${customer.pinjamankin}</div>
+                        
+                        <div class="qr-code">
+                            ${qrSvg}
+                            <small style="color: #7f8c8d;">Scan QR ini untuk akses cepat data.</small>
+                        </div>
+                        <div class="actions">
+                            <button class="btn btn-primary" onclick="viewCustomer('${customer.customerId}')">Lihat Detail</button>
+                            <button class="btn btn-warning" onclick="editCustomer('${customer.customerId}')">Edit</button>
+                            <button class="btn btn-danger" onclick="deleteCustomer('${customer.customerId}')">Hapus</button>
+                            <button class="btn btn-success" onclick="downloadQRCode('${customer.customerId}')">Download QR</button>
+                        </div>
+                    </div>
+                `;
+                
+                container.appendChild(card);
+            });
+        }
+        
+        // MODIFIKASI: Tombol Lihat Detail di mode Admin hanya mengarahkan ke URL Scan Mode
+        function viewCustomer(customerId) {
+            // Kita arahkan browser ke URL dengan parameter customerId, 
+            // sehingga memicu alur verifikasi password QR
+            window.location.href = `index.html?customerId=${customerId}`;
+        }
+        
+        // MODIFIKASI: checkQrPassword kini menampilkan data dan foto di modal
+        function checkQrPassword() {
+            const password = document.getElementById('qrPasswordInput').value;
+            
+            if (password === systemSettings.globalQrPassword) {
+                const customer = qrPasswordData;
+                
+                // Pastikan modal memiliki scroll jika kontennya panjang
+                document.querySelector('.modal-content').style.maxWidth = '95%';
+                document.querySelector('.modal-content').style.maxHeight = '90vh';
+
+                let detailHtml = `
+                    <div style="padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-top: 15px; background: #f9f9f9;">
+                        <h3 style="color: #2a5298; border-bottom: 2px solid #ddd; padding-bottom: 5px;">Data Nasabah</h3>
+                        <p><strong>Customer ID:</strong> ${customer.customerId}</p>
+                        <p><strong>Nama:</strong> ${customer.nama}</p>
+                        <p><strong>NIK:</strong> ${customer.nik}</p>
+                        <p><strong>Alamat:</strong> ${customer.alamat}</p>
+                        <p><strong>Pinjaman:</strong> Rp ${customer.pinjamankin}</p>
+                        <p><strong>Pinjamanki:</strong> ${customer.pinjamanki}</p>
+                        <p><strong>Dokumen:</strong> ${customer.dokumen}</p>
+                    </div>
+                    
+                    ${customer.fotoNasabah ? 
+                        `<div style="margin-top: 15px; text-align: center; border: 1px solid #ddd; border-radius: 8px; padding: 10px; background: #fff;">
+                            <h3 style="color: #2a5298;">Foto Nasabah</h3>
+                            <img src="${getDirectGDriveUrl(customer.fotoNasabah)}" alt="Foto Nasabah" style="max-width: 100%; height: auto; border-radius: 8px; max-height: 250px;">
+                        </div>` 
+                        : ''}
+                    
+                    ${customer.fotoRumah ? 
+                        `<div style="margin-top: 15px; text-align: center; border: 1px solid #ddd; border-radius: 8px; padding: 10px; background: #fff;">
+                            <h3 style="color: #2a5298;">Foto Rumah</h3>
+                            <img src="${getDirectGDriveUrl(customer.fotoRumah)}" alt="Foto Rumah" style="max-width: 100%; height: auto; border-radius: 8px; max-height: 250px;">
+                        </div>` 
+                        : ''}
+                `;
+
+                document.querySelector('.modal-content').innerHTML = `
+                    <h2 class="modal-title">Data Nasabah Terverifikasi</h2>
+                    ${detailHtml}
+                    <div class="form-actions" style="margin-top: 20px;">
+                        <button class="btn btn-primary" onclick="window.location.href='index.html'">Tutup</button>
+                    </div>
+                `;
+                
+            } else {
+                alert('Password salah! Akses ditolak.');
+            }
+        }
+        
+        function closeModal() {
+            // Di mode Scan View, ini akan mengarahkan kembali ke index.html kosong
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('customerId')) {
+                window.location.href = 'index.html'; 
+            } else {
+                document.getElementById('passwordModal').style.display = 'none';
+                document.getElementById('qrPasswordInput').value = '';
+                qrPasswordData = null;
+            }
+        }
+        
+        function editCustomer(customerId) {
+            const customer = customers.find(c => c.customerId === customerId);
+            if (customer) {
+                currentEditId = customerId;
+                
+                document.getElementById('formTitle').textContent = 'Edit Data Nasabah';
+                document.getElementById('submitButton').textContent = 'Update Data Nasabah';
+                document.getElementById('no').value = customer.no;
+                document.getElementById('customerId').value = customer.customerId;
+                document.getElementById('tglDrop').value = customer.tglDrop;
+                document.getElementById('nik').value = customer.nik;
+                document.getElementById('nama').value = customer.nama;
+                document.getElementById('alamat').value = customer.alamat;
+                document.getElementById('dokumen').value = customer.dokumen;
+                document.getElementById('pinjamankin').value = customer.pinjamankin;
+                document.getElementById('pinjamanki').value = customer.pinjamanki;
+
+                document.getElementById('fotoNasabah').value = customer.fotoNasabah || '';
+                document.getElementById('fotoRumah').value = customer.fotoRumah || '';
+
+                document.getElementById('previewFotoNasabah').innerHTML = customer.fotoNasabah ? 
+                    `<img src="${getDirectGDriveUrl(customer.fotoNasabah)}" alt="Foto Nasabah" class="preview-image">` : '';
+                document.getElementById('previewFotoRumah').innerHTML = customer.fotoRumah ? 
+                    `<img src="${getDirectGDriveUrl(customer.fotoRumah)}" alt="Foto Rumah" class="preview-image">` : '';
+                
+                showTab('add');
+            }
+        }
+        
+        function deleteCustomer(customerId) {
+            if (confirm('Apakah Anda yakin ingin menghapus nasabah ini?')) {
+                customers = customers.filter(c => c.customerId !== customerId);
+                createCustomerCards(customers);
+                renderTable();
+                saveData();
+                
+                if (db) {
+                    db.ref('customers/' + customerId).remove();
+                }
+            }
+        }
+        
+        function downloadQRCode(customerId) {
+            const customer = customers.find(c => c.customerId === customerId);
+            if (customer) {
+                const appUrl = window.location.origin + window.location.pathname; 
+                const qrContent = `${appUrl}?customerId=${customer.customerId}`;
+
+                const qr = qrcode(0, 'M');
+                qr.addData(qrContent);
+                qr.make();
+                
+                const svgString = qr.createSvgTag({scale: 8, margin: 2});
+                const blob = new Blob([svgString], {type: 'image/svg+xml'});
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `QR_${customer.nama.replace(/\s+/g, '_')}_${customerId}.svg`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+        }
+        
+        function renderTable() {
+            const tableBody = document.querySelector('#customersTable tbody');
+            tableBody.innerHTML = '';
+            
+            customers.forEach(customer => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${customer.no}</td>
+                    <td>${customer.customerId}</td>
+                    <td>${customer.nama}</td>
+                    <td>${customer.nik}</td>
+                    <td>${customer.alamat}</td>
+                    <td>Rp ${customer.pinjamankin}</td>
+                    <td>${customer.fotoNasabah ? 'Ada (URL)' : 'Tidak Ada'}</td>
+                    <td>${customer.fotoRumah ? 'Ada (URL)' : 'Tidak Ada'}</td>
+                    <td class="action-cell">
+                        <button class="btn btn-primary btn-sm" onclick="viewCustomer('${customer.customerId}')">Lihat</button>
+                        <button class="btn btn-warning btn-sm" onclick="editCustomer('${customer.customerId}')">Edit</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteCustomer('${customer.customerId}')">Hapus</button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+        
+        document.getElementById('customerForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const isEditing = !!currentEditId; 
+
+            const customerData = {
+                id: generateUniqueId(), 
+                no: parseInt(document.getElementById('no').value),
+                customerId: document.getElementById('customerId').value,
+                tglDrop: document.getElementById('tglDrop').value,
+                nik: document.getElementById('nik').value,
+                nama: document.getElementById('nama').value,
+                alamat: document.getElementById('alamat').value,
+                dokumen: document.getElementById('dokumen').value,
+                pinjamankin: document.getElementById('pinjamankin').value,
+                pinjamanki: document.getElementById('pinjamanki').value,
+                
+                fotoNasabah: document.getElementById('fotoNasabah').value.trim() || null,
+                fotoRumah: document.getElementById('fotoRumah').value.trim() || null,
+                updatedAt: Date.now()
+            };
+
+            if (isEditing) {
+                const index = customers.findIndex(c => c.customerId === currentEditId);
+                if (index !== -1) {
+                    customerData.id = customers[index].id; 
+                    customers[index] = customerData;
+                }
+            } else {
+                if (customers.some(c => c.customerId === customerData.customerId)) {
+                    alert('Customer ID sudah ada. Gunakan ID yang berbeda atau lakukan edit.');
+                    return;
+                }
+                customers.push(customerData);
+            }
+
+            createCustomerCards(customers);
+            renderTable();
+            saveData();
+            
+            if (db) {
+                db.ref('customers/' + customerData.customerId).set(customerData); 
+            }
+            
+            resetForm();
+            alert('Data nasabah berhasil disimpan/diperbarui!');
+            showTab('view');
+        });
+
+        document.getElementById('fotoNasabah').addEventListener('input', function(e) {
+            const url = getDirectGDriveUrl(e.target.value.trim());
+            const previewDiv = document.getElementById('previewFotoNasabah');
+            previewDiv.innerHTML = url ? `<img src="${url}" alt="Preview Foto Nasabah" class="preview-image">` : '';
+        });
+        
+        document.getElementById('fotoRumah').addEventListener('input', function(e) {
+            const url = getDirectGDriveUrl(e.target.value.trim());
+            const previewDiv = document.getElementById('previewFotoRumah');
+            previewDiv.innerHTML = url ? `<img src="${url}" alt="Preview Foto Rumah" class="preview-image">` : '';
+        });
+        
+        
         function saveSettings() {
             const newUsername = document.getElementById('adminUsername').value;
             const newPassword = document.getElementById('adminNewPassword').value;
@@ -1022,441 +1289,58 @@
             }
             
             localStorage.setItem('kspSetyaKaryaSettings', JSON.stringify(systemSettings));
-            alert('Pengaturan berhasil disimpan!');
+            alert('Pengaturan berhasil disimpan! Aplikasi akan mencoba inisialisasi ulang Firebase.');
             
-            // Re-inisialisasi Firebase jika konfigurasi berubah
-            if (firebaseConfig.trim()) {
-                if (firebase.apps.length > 0) {
-                    firebase.app().delete().then(() => {
-                        initFirebase();
-                    });
-                } else {
-                    initFirebase();
-                }
-            }
+            initFirebase();
         }
         
-        // Fungsi untuk membuat kartu nasabah
-        function createCustomerCards(customersToShow) {
-            const container = document.getElementById('customerCards');
-            container.innerHTML = '';
-            
-            if (customersToShow.length === 0) {
-                container.innerHTML = '<div class="no-results">Tidak ada data nasabah yang ditemukan.</div>';
-                return;
-            }
-            
-            customersToShow.forEach(customer => {
-                const card = document.createElement('div');
-                card.className = 'card';
-                
-                // Generate QR code
-                const qr = qrcode(0, 'M');
-                qr.addData(JSON.stringify({
-                    id: customer.id,
-                    customerId: customer.customerId,
-                    nama: customer.nama,
-                    nik: customer.nik,
-                    alamat: customer.alamat,
-                    pinjamankin: customer.pinjamankin,
-                    pinjamanki: customer.pinjamanki,
-                    password: systemSettings.globalQrPassword
-                }));
-                qr.make();
-                
-                const qrSvg = qr.createSvgTag({scale: 4, margin: 0});
-                
-                card.innerHTML = `
-                    <div class="card-header">
-                        <div class="customer-id">${customer.customerId}</div>
-                    </div>
-                    <div class="card-body">
-                        <div class="customer-name">${customer.nama}</div>
-                        <div class="customer-detail"><span class="detail-label">NIK:</span> ${customer.nik}</div>
-                        <div class="customer-detail"><span class="detail-label">Alamat:</span> ${customer.alamat}</div>
-                        <div class="customer-detail"><span class="detail-label">Pinjaman:</span> Rp ${customer.pinjamankin}</div>
-                        <div class="customer-detail"><span class="detail-label">Pinjamanki:</span> ${customer.pinjamanki}</div>
-                        <div class="qr-code">
-                            ${qrSvg}
-                        </div>
-                        <div class="actions">
-                            <button class="btn btn-primary" onclick="viewCustomer(${customer.id})">Lihat Detail</button>
-                            <button class="btn btn-warning" onclick="editCustomer(${customer.id})">Edit</button>
-                            <button class="btn btn-danger" onclick="deleteCustomer(${customer.id})">Hapus</button>
-                            <button class="btn btn-success" onclick="downloadQRCode(${customer.id})">Download QR</button>
-                        </div>
-                    </div>
-                `;
-                
-                container.appendChild(card);
-            });
-        }
+        // --- LOGIKA UTAMA SCAN MODE ---
         
-        // Fungsi untuk melihat detail nasabah
-        function viewCustomer(id) {
-            const customer = customers.find(c => c.id === id);
+        function handleScanView(scannedId) {
+            const customer = customers.find(c => c.customerId === scannedId);
+            
             if (customer) {
-                // Simpan data untuk modal
+                document.getElementById('loginSection').style.display = 'none';
+                document.getElementById('mainSection').style.display = 'none';
+                
                 qrPasswordData = customer;
-                // Tampilkan modal password
                 document.getElementById('passwordModal').style.display = 'flex';
-            }
-        }
-        
-        // Fungsi untuk mengecek password QR code
-        function checkQrPassword() {
-            const password = document.getElementById('qrPasswordInput').value;
-            
-            if (password === systemSettings.globalQrPassword) {
-                // Tampilkan data nasabah
-                alert(`Data Nasabah:\n\nNama: ${qrPasswordData.nama}\nNIK: ${qrPasswordData.nik}\nAlamat: ${qrPasswordData.alamat}\nPinjaman: Rp ${qrPasswordData.pinjamankin}\nPinjamanki: ${qrPasswordData.pinjamanki}`);
-                closeModal();
+                
+                document.querySelector('.modal-title').textContent = `Verifikasi Data Nasabah (${customer.customerId})`;
+                
             } else {
-                alert('Password salah!');
+                alert(`Data nasabah dengan ID ${scannedId} tidak ditemukan di database! Silakan login admin untuk sinkronisasi data terbaru.`);
+                document.getElementById('loginSection').style.display = 'block';
             }
         }
         
-        // Fungsi untuk menutup modal
-        function closeModal() {
-            document.getElementById('passwordModal').style.display = 'none';
-            document.getElementById('qrPasswordInput').value = '';
-            qrPasswordData = null;
-        }
-        
-        // Fungsi untuk mengedit nasabah
-        function editCustomer(id) {
-            const customer = customers.find(c => c.id === id);
-            if (customer) {
-                currentEditId = id;
-                
-                // Isi form dengan data nasabah
-                document.getElementById('no').value = customer.no;
-                document.getElementById('customerId').value = customer.customerId;
-                document.getElementById('tglDrop').value = customer.tglDrop;
-                document.getElementById('nik').value = customer.nik;
-                document.getElementById('nama').value = customer.nama;
-                document.getElementById('alamat').value = customer.alamat;
-                document.getElementById('dokumen').value = customer.dokumen;
-                document.getElementById('pinjamankin').value = customer.pinjamankin;
-                document.getElementById('pinjamanki').value = customer.pinjamanki;
-                
-                // Tampilkan preview foto jika ada
-                if (customer.fotoNasabah) {
-                    document.getElementById('previewFotoNasabah').innerHTML = 
-                        `<img src="${customer.fotoNasabah}" alt="Foto Nasabah" class="preview-image">`;
-                }
-                
-                if (customer.fotoRumah) {
-                    document.getElementById('previewFotoRumah').innerHTML = 
-                        `<img src="${customer.fotoRumah}" alt="Foto Rumah" class="preview-image">`;
-                }
-                
-                // Pindah ke tab tambah nasabah
-                showTab('add');
-            }
-        }
-        
-        // Fungsi untuk menghapus nasabah
-        function deleteCustomer(id) {
-            if (confirm('Apakah Anda yakin ingin menghapus nasabah ini?')) {
-                customers = customers.filter(c => c.id !== id);
-                createCustomerCards(customers);
-                renderTable();
-                saveData();
-                
-                // Hapus juga dari Firebase jika terhubung
-                if (db) {
-                    db.ref('customers/' + id).remove();
-                }
-            }
-        }
-        
-        // Fungsi untuk mendownload QR code
-        function downloadQRCode(id) {
-            const customer = customers.find(c => c.id === id);
-            if (customer) {
-                // Buat QR code
-                const qr = qrcode(0, 'M');
-                qr.addData(JSON.stringify({
-                    id: customer.id,
-                    customerId: customer.customerId,
-                    nama: customer.nama,
-                    nik: customer.nik,
-                    alamat: customer.alamat,
-                    pinjamankin: customer.pinjamankin,
-                    pinjamanki: customer.pinjamanki,
-                    password: systemSettings.globalQrPassword
-                }));
-                qr.make();
-                
-                const svgString = qr.createSvgTag({scale: 8, margin: 2});
-                const blob = new Blob([svgString], {type: 'image/svg+xml'});
-                const url = URL.createObjectURL(blob);
-                
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `QR_${customer.nama.replace(/\s+/g, '_')}.svg`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-            }
-        }
-        
-        // Fungsi untuk merender tabel
-        function renderTable() {
-            const tableBody = document.querySelector('#customersTable tbody');
-            tableBody.innerHTML = '';
+        // Inisialisasi saat halaman dimuat
+        window.onload = function() {
+            loadSettings();
+            loadData(); 
             
-            customers.forEach(customer => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${customer.no}</td>
-                    <td>${customer.customerId}</td>
-                    <td>${customer.nama}</td>
-                    <td>${customer.nik}</td>
-                    <td>${customer.alamat}</td>
-                    <td>Rp ${customer.pinjamankin}</td>
-                    <td>${customer.fotoNasabah ? 'Ya' : 'Tidak'}</td>
-                    <td>${customer.fotoRumah ? 'Ya' : 'Tidak'}</td>
-                    <td class="action-cell">
-                        <button class="btn btn-primary" onclick="viewCustomer(${customer.id})">Lihat</button>
-                        <button class="btn btn-warning" onclick="editCustomer(${customer.id})">Edit</button>
-                        <button class="btn btn-danger" onclick="deleteCustomer(${customer.id})">Hapus</button>
-                    </td>
-                `;
-                tableBody.appendChild(row);
-            });
-        }
-        
-        // Fungsi untuk menangani form tambah/edit nasabah
-        document.getElementById('customerForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const formData = new FormData();
-            formData.append('no', document.getElementById('no').value);
-            formData.append('customerId', document.getElementById('customerId').value);
-            formData.append('tglDrop', document.getElementById('tglDrop').value);
-            formData.append('nik', document.getElementById('nik').value);
-            formData.append('nama', document.getElementById('nama').value);
-            formData.append('alamat', document.getElementById('alamat').value);
-            formData.append('dokumen', document.getElementById('dokumen').value);
-            formData.append('pinjamankin', document.getElementById('pinjamankin').value);
-            formData.append('pinjamanki', document.getElementById('pinjamanki').value);
-            
-            const fotoNasabahFile = document.getElementById('fotoNasabah').files[0];
-            const fotoRumahFile = document.getElementById('fotoRumah').files[0];
-            
-            if (fotoNasabahFile) {
-                formData.append('fotoNasabah', fotoNasabahFile);
-            }
-            
-            if (fotoRumahFile) {
-                formData.append('fotoRumah', fotoRumahFile);
-            }
-            
-            // Proses data (simpan ke array customers)
-            const customerData = {
-                id: currentEditId || Date.now(),
-                no: parseInt(document.getElementById('no').value),
-                customerId: document.getElementById('customerId').value,
-                tglDrop: document.getElementById('tglDrop').value,
-                nik: document.getElementById('nik').value,
-                nama: document.getElementById('nama').value,
-                alamat: document.getElementById('alamat').value,
-                dokumen: document.getElementById('dokumen').value,
-                pinjamankin: document.getElementById('pinjamankin').value,
-                pinjamanki: document.getElementById('pinjamanki').value,
-                fotoNasabah: null,
-                fotoRumah: null,
-                updatedAt: Date.now()
-            };
-            
-            // Proses foto jika ada
-            if (fotoNasabahFile) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    customerData.fotoNasabah = e.target.result;
-                    saveCustomerData(customerData);
-                };
-                reader.readAsDataURL(fotoNasabahFile);
-            } else if (currentEditId) {
-                // Jika edit dan tidak ada foto baru, gunakan foto lama
-                const existingCustomer = customers.find(c => c.id === currentEditId);
-                if (existingCustomer) {
-                    customerData.fotoNasabah = existingCustomer.fotoNasabah;
-                }
-                saveCustomerData(customerData);
+            const urlParams = new URLSearchParams(window.location.search);
+            const scannedId = urlParams.get('customerId');
+
+            if (scannedId) {
+                // MODE PETUGAS LAPANGAN (SCAN VIEW)
+                handleScanView(scannedId);
             } else {
-                saveCustomerData(customerData);
-            }
-            
-            // Proses foto rumah jika ada
-            if (fotoRumahFile) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    customerData.fotoRumah = e.target.result;
-                    saveCustomerData(customerData);
-                };
-                reader.readAsDataURL(fotoRumahFile);
-            } else if (currentEditId) {
-                // Jika edit dan tidak ada foto baru, gunakan foto lama
-                const existingCustomer = customers.find(c => c.id === currentEditId);
-                if (existingCustomer) {
-                    customerData.fotoRumah = existingCustomer.fotoRumah;
+                // MODE ADMIN (DEFAULT)
+                if (localStorage.getItem('kspSetyaKaryaLoggedIn') === 'true') {
+                     loginSuccess();
+                } else {
+                     document.getElementById('loginSection').style.display = 'block';
                 }
-                saveCustomerData(customerData);
-            } else {
-                saveCustomerData(customerData);
             }
-        });
+        };
+        // --- END LOGIKA UTAMA SCAN MODE ---
         
-        // Fungsi untuk menyimpan data nasabah
-        function saveCustomerData(customerData) {
-            if (currentEditId) {
-                // Edit nasabah yang sudah ada
-                const index = customers.findIndex(c => c.id === currentEditId);
-                if (index !== -1) {
-                    customers[index] = customerData;
-                }
-            } else {
-                // Tambah nasabah baru
-                customers.push(customerData);
-            }
-            
-            createCustomerCards(customers);
-            renderTable();
-            saveData();
-            
-            // Simpan ke Firebase jika terhubung
-            if (db) {
-                db.ref('customers/' + customerData.id).set(customerData);
-            }
-            
-            // Reset form
-            document.getElementById('customerForm').reset();
-            document.getElementById('previewFotoNasabah').innerHTML = '';
-            document.getElementById('previewFotoRumah').innerHTML = '';
-            currentEditId = null;
-            
-            alert('Data nasabah berhasil disimpan!');
-            showTab('view');
-        }
-        
-        // Fungsi untuk export data ke CSV
-        function exportToCSV() {
-            if (customers.length === 0) {
-                alert('Tidak ada data untuk diexport!');
-                return;
-            }
-            
-            const headers = ['No', 'Customer ID', 'Tanggal Drop', 'NIK', 'Nama', 'Alamat', 'Dokumen', 'Pinjaman (Rp)', 'Pinjamanki'];
-            const csvData = [headers];
-            
-            customers.forEach(customer => {
-                csvData.push([
-                    customer.no,
-                    customer.customerId,
-                    customer.tglDrop,
-                    customer.nik,
-                    customer.nama,
-                    customer.alamat,
-                    customer.dokumen,
-                    customer.pinjamankin,
-                    customer.pinjamanki
-                ]);
-            });
-            
-            const csvContent = csvData.map(row => row.map(field => `"${field}"`).join(',')).join('\n');
-            const blob = new Blob([csvContent], {type: 'text/csv;charset=utf-8;'});
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `nasabah_ksp_${new Date().toISOString().split('T')[0]}.csv`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }
-        
-        // Fungsi untuk preview foto
-        document.getElementById('fotoNasabah').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    document.getElementById('previewFotoNasabah').innerHTML = 
-                        `<img src="${e.target.result}" alt="Preview Foto Nasabah" class="preview-image">`;
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-        
-        document.getElementById('fotoRumah').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    document.getElementById('previewFotoRumah').innerHTML = 
-                        `<img src="${e.target.result}" alt="Preview Foto Rumah" class="preview-image">`;
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-        
-        // Fungsi untuk pencarian
-        document.getElementById('searchInput').addEventListener('input', function(e) {
-            const searchTerm = e.target.value.toLowerCase();
-            const filteredCustomers = customers.filter(customer => 
-                customer.nama.toLowerCase().includes(searchTerm) ||
-                customer.nik.toLowerCase().includes(searchTerm) ||
-                customer.alamat.toLowerCase().includes(searchTerm) ||
-                customer.customerId.toLowerCase().includes(searchTerm)
-            );
-            createCustomerCards(filteredCustomers);
-        });
-        
-        document.getElementById('tableSearchInput').addEventListener('input', function(e) {
-            const searchTerm = e.target.value.toLowerCase();
-            const filteredCustomers = customers.filter(customer => 
-                customer.nama.toLowerCase().includes(searchTerm) ||
-                customer.nik.toLowerCase().includes(searchTerm) ||
-                customer.alamat.toLowerCase().includes(searchTerm) ||
-                customer.customerId.toLowerCase().includes(searchTerm)
-            );
-            
-            const tableBody = document.querySelector('#customersTable tbody');
-            tableBody.innerHTML = '';
-            
-            filteredCustomers.forEach(customer => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${customer.no}</td>
-                    <td>${customer.customerId}</td>
-                    <td>${customer.nama}</td>
-                    <td>${customer.nik}</td>
-                    <td>${customer.alamat}</td>
-                    <td>Rp ${customer.pinjamankin}</td>
-                    <td>${customer.fotoNasabah ? 'Ya' : 'Tidak'}</td>
-                    <td>${customer.fotoRumah ? 'Ya' : 'Tidak'}</td>
-                    <td class="action-cell">
-                        <button class="btn btn-primary" onclick="viewCustomer(${customer.id})">Lihat</button>
-                        <button class="btn btn-warning" onclick="editCustomer(${customer.id})">Edit</button>
-                        <button class="btn btn-danger" onclick="deleteCustomer(${customer.id})">Hapus</button>
-                    </td>
-                `;
-                tableBody.appendChild(row);
-            });
-        });
-        
-        // Fungsi untuk drag and drop file
+        // --- LOGIKA IMPORT TETAP SAMA --- (Hanya menyalin bagian fungsional)
         const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
         
-        dropZone.addEventListener('click', () => {
-            fileInput.click();
-        });
-        
+        dropZone.addEventListener('click', () => { fileInput.click(); });
         fileInput.addEventListener('change', handleFileSelect);
         
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -1476,13 +1360,8 @@
             dropZone.addEventListener(eventName, unhighlight, false);
         });
         
-        function highlight() {
-            dropZone.style.backgroundColor = '#f0f8ff';
-        }
-        
-        function unhighlight() {
-            dropZone.style.backgroundColor = '';
-        }
+        function highlight() { dropZone.style.backgroundColor = '#f0f8ff'; }
+        function unhighlight() { dropZone.style.backgroundColor = ''; }
         
         dropZone.addEventListener('drop', handleDrop, false);
         
@@ -1541,7 +1420,6 @@
                 return;
             }
             
-            // Validasi kolom minimal
             const firstRow = data[0];
             const requiredFields = ['No', 'Customer ID', 'NIK', 'Nama', 'Alamat'];
             const missingFields = requiredFields.filter(field => !(field in firstRow));
@@ -1551,15 +1429,13 @@
                 return;
             }
             
-            // Konfirmasi import
             if (!confirm(`Anda akan mengimpor ${data.length} data nasabah. Lanjutkan?`)) {
                 return;
             }
             
-            // Proses data
             const importedCustomers = data.map((row, index) => {
                 return {
-                    id: Date.now() + index, // ID unik
+                    id: Date.now() + index,
                     no: row.No || 0,
                     customerId: row['Customer ID'] || '',
                     tglDrop: row['Tanggal Drop'] || new Date().toISOString().split('T')[0],
@@ -1569,13 +1445,12 @@
                     dokumen: row.Dokumen || '',
                     pinjamankin: row['Pinjaman (Rp)'] || '0',
                     pinjamanki: row.Pinjamanki || '',
-                    fotoNasabah: null,
-                    fotoRumah: null,
+                    fotoNasabah: row['Foto Nasabah (URL)'] || null, // Asumsi ada kolom ini di CSV/Excel jika mau impor URL
+                    fotoRumah: row['Foto Rumah (URL)'] || null,
                     updatedAt: Date.now()
                 };
             });
             
-            // Gabungkan dengan data yang ada
             customers = [...customers, ...importedCustomers];
             createCustomerCards(customers);
             renderTable();
@@ -1584,18 +1459,45 @@
             alert(`Berhasil mengimpor ${importedCustomers.length} data nasabah!`);
             showTab('view');
         }
-        
-        // Inisialisasi saat halaman dimuat
-        window.onload = function() {
-            // Setup event listener untuk form
-            document.getElementById('customerForm').addEventListener('submit', function(e) {
-                e.preventDefault();
-                // Handler sudah didefinisikan di atas
+
+        function exportToCSV() {
+            if (customers.length === 0) {
+                alert('Tidak ada data untuk diexport!');
+                return;
+            }
+            
+            const headers = ['No', 'Customer ID', 'Tanggal Drop', 'NIK', 'Nama', 'Alamat', 'Dokumen', 'Pinjaman (Rp)', 'Pinjamanki', 'Foto Nasabah (URL)', 'Foto Rumah (URL)'];
+            const csvData = [headers];
+            
+            customers.forEach(customer => {
+                csvData.push([
+                    customer.no,
+                    customer.customerId,
+                    customer.tglDrop,
+                    customer.nik,
+                    customer.nama,
+                    customer.alamat,
+                    customer.dokumen,
+                    customer.pinjamankin,
+                    customer.pinjamanki,
+                    customer.fotoNasabah || '',
+                    customer.fotoRumah || ''
+                ]);
             });
             
-            // Load data dan settings
-            loadSettings();
-        };
+            const csvContent = csvData.map(row => row.map(field => `"${field}"`).join(',')).join('\n');
+            const blob = new Blob([csvContent], {type: 'text/csv;charset=utf-8;'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `nasabah_ksp_${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+        // --- END LOGIKA IMPORT ---
+
     </script>
 </body>
 </html>
